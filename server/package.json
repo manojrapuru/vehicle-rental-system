@@ -1,0 +1,25 @@
+{
+  "name": "vehicle-rental-server",
+  "version": "1.0.0",
+  "description": "Backend API for Vehicle Rental System built with Node.js, Express.js, and MySQL",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node app.js"
+  },
+  "keywords": [
+    "vehicle-rental",
+    "express",
+    "mysql",
+    "nodejs",
+    "rest-api"
+  ],
+  "author": "Full Stack Lab Project",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mysql2": "^3.12.0"
+  }
+}
