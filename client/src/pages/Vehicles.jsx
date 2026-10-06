@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import VehicleList from '../components/VehicleList';
+import { apiUrl } from '../config/api';
 
 /**
  * Vehicles Page Component
@@ -59,7 +60,7 @@ export default function Vehicles({
   const handleToggleAvailability = async (vehicle) => {
     const newStatus = vehicle.availability === 'Available' ? 'Not Available' : 'Available';
     try {
-      const res = await fetch(`/api/vehicles/${vehicle.id}`, {
+      const res = await fetch(apiUrl(`/api/vehicles/${vehicle.id}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -85,7 +86,7 @@ export default function Vehicles({
   const handleDelete = async (id) => {
     if (window.confirm(`Are you sure you want to delete vehicle #${id}?`)) {
       try {
-        const res = await fetch(`/api/vehicles/${id}`, { method: 'DELETE' });
+        const res = await fetch(apiUrl(`/api/vehicles/${id}`), { method: 'DELETE' });
         const result = await res.json();
         if (!res.ok || !result.success) {
           throw new Error(result.message || 'Failed to delete vehicle');
@@ -118,7 +119,7 @@ export default function Vehicles({
       const url = editingVehicle ? `/api/vehicles/${editingVehicle.id}` : '/api/vehicles';
       const method = editingVehicle ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      const res = await fetch(apiUrl(url), {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

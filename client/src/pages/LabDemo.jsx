@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import LabConcepts from '../components/LabConcepts';
+import { apiUrl } from '../config/api';
 
 /**
  * LabDemo Page Component
@@ -12,7 +13,7 @@ export default function LabDemo() {
   const checkApiHealth = async () => {
     setCheckingHealth(true);
     try {
-      const res = await fetch('/api/health');
+      const res = await fetch(apiUrl('/api/health'));
       const data = await res.json();
       setHealthData(data);
     } catch (err) {

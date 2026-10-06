@@ -3,17 +3,22 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-// Create MySQL Connection Pool
-const pool = mysql.createPool({
-  host: process.env.MYSQL_HOST || 'localhost',
-  user: process.env.MYSQL_USER || 'root',
-  password: process.env.MYSQL_PASSWORD || '',
-  database: process.env.MYSQL_DATABASE || 'vehicle_rental',
-  port: process.env.MYSQL_PORT ? parseInt(process.env.MYSQL_PORT, 10) : 3306,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-});
+// Create MySQL Connection Pool (Supports both standard parameters and cloud URI strings)
+const dbConfig = process.env.MYSQL_URL || process.env.DATABASE_URL
+  ? process.env.MYSQL_URL || process.env.DATABASE_URL
+  : {
+      host: process.env.MYSQL_HOST || 'localhost',
+      user: process.env.MYSQL_USER || 'root',
+      password: process.env.MYSQL_PASSWORD || '',
+      database: process.env.MYSQL_DATABASE || 'vehicle_rental',
+      port: process.env.MYSQL_PORT ? parseInt(process.env.MYSQL_PORT, 10) : 3306,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+      ssl: process.env.MYSQL_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+    };
+
+const pool = mysql.createPool(dbConfig);
 
 let isUsingMock = false;
 

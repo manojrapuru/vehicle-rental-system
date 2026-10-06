@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import BookingForm from '../components/BookingForm';
+import { apiUrl } from '../config/api';
 
 /**
  * Booking Page Component
@@ -32,7 +33,7 @@ export default function Booking({
     setLoadingBookings(true);
     setBookingsError('');
     try {
-      const res = await fetch('/api/bookings');
+      const res = await fetch(apiUrl('/api/bookings'));
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(data.message || 'Failed to fetch bookings');
@@ -54,7 +55,7 @@ export default function Booking({
   // Update booking status (e.g. Completed, Cancelled, Active)
   const handleUpdateStatus = async (id, newStatus) => {
     try {
-      const res = await fetch(`/api/bookings/${id}/status`, {
+      const res = await fetch(apiUrl(`/api/bookings/${id}/status`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -76,7 +77,7 @@ export default function Booking({
   const handleDeleteBooking = async (id) => {
     if (window.confirm(`Are you sure you want to cancel and delete reservation #${id}?`)) {
       try {
-        const res = await fetch(`/api/bookings/${id}`, { method: 'DELETE' });
+        const res = await fetch(apiUrl(`/api/bookings/${id}`), { method: 'DELETE' });
         const data = await res.json();
         if (!res.ok || !data.success) {
           throw new Error(data.message || 'Error deleting booking');

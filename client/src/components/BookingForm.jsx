@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiUrl } from '../config/api';
 
 /**
  * BookingForm Component (Real-World Commercial Grade)
@@ -199,7 +200,7 @@ export default function BookingForm({
         payment_method: formData.payment_method,
       };
 
-      const response = await fetch('/api/bookings', {
+      const response = await fetch(apiUrl('/api/bookings'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

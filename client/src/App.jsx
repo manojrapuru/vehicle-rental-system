@@ -5,6 +5,7 @@ import Vehicles from './pages/Vehicles';
 import Booking from './pages/Booking';
 import LabDemo from './pages/LabDemo';
 import Logo from './components/Logo';
+import { apiUrl } from './config/api';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
@@ -18,7 +19,7 @@ export default function App() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/vehicles');
+      const response = await fetch(apiUrl('/api/vehicles'));
       const json = await response.json();
       if (!response.ok || !json.success) {
         throw new Error(json.message || 'Failed to fetch vehicles from API');

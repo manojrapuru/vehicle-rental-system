@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ReactClassCounter, FunctionalHookCounter } from './ClassCounter';
+import { apiUrl } from '../config/api';
 
 /**
  * LabConcepts Component
@@ -49,7 +50,7 @@ export default function LabConcepts() {
   const fetchSubqueryDemo = async () => {
     setSubqueryLoading(true);
     try {
-      const res = await fetch('/api/vehicles/demo/above-average');
+      const res = await fetch(apiUrl('/api/vehicles/demo/above-average'));
       const json = await res.json();
       setSubqueryResult(json);
     } catch (err) {
