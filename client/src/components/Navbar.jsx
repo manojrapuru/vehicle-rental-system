@@ -1,16 +1,16 @@
 import React from 'react';
+import Logo from './Logo';
 
 /**
  * Navbar Component
- * Demonstrates: Functional component, Props, Event handling, Conditional CSS classes
+ * Includes Brand Logo, navigation tabs, quick booking action, and responsive styling
  */
 export default function Navbar({ activeTab, setActiveTab }) {
   return (
     <header className="navbar">
       <div className="container nav-container">
-        <div className="nav-brand" onClick={() => setActiveTab('home')}>
-          <div className="brand-icon-wrapper">🚗</div>
-          <span>Vehicle Rental System</span>
+        <div className="nav-brand" onClick={() => setActiveTab('home')} style={{ cursor: 'pointer' }}>
+          <Logo size={40} showText={true} />
         </div>
 
         <nav>
@@ -28,7 +28,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 className={`nav-item ${activeTab === 'vehicles' ? 'active' : ''}`}
                 onClick={() => setActiveTab('vehicles')}
               >
-                Vehicles
+                Fleet Catalog
               </button>
             </li>
             <li>
@@ -36,7 +36,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 className={`nav-item ${activeTab === 'booking' ? 'active' : ''}`}
                 onClick={() => setActiveTab('booking')}
               >
-                Book a Vehicle
+                Book a Ride
               </button>
             </li>
             <li>
@@ -44,7 +44,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 className={`nav-item ${activeTab === 'bookings-list' ? 'active' : ''}`}
                 onClick={() => setActiveTab('bookings-list')}
               >
-                Manage Bookings
+                Manage Reservations
               </button>
             </li>
             <li>

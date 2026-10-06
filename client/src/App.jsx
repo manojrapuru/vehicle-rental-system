@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import Vehicles from './pages/Vehicles';
 import Booking from './pages/Booking';
 import LabDemo from './pages/LabDemo';
+import Logo from './components/Logo';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
@@ -94,14 +95,11 @@ export default function App() {
       <footer className="footer">
         <div className="container footer-grid">
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-              <span style={{ fontSize: '1.4rem' }}>🚗</span>
-              <strong style={{ fontSize: '1.2rem', color: 'var(--primary)' }}>
-                Vehicle Rental System
-              </strong>
+            <div style={{ marginBottom: '14px' }}>
+              <Logo size={36} showText={true} />
             </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', maxWidth: '380px' }}>
-              A clean, modern Full Stack Web Application designed for vehicle bookings, fleet management, and academic lab demonstrations.
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', maxWidth: '380px', lineHeight: '1.6' }}>
+              DrivePulse is a modern, enterprise-grade vehicle rental platform providing seamless self-drive cars, touring bikes, SUVs, and luxury vans with 100% insurance and instant confirmation.
             </p>
           </div>
 
@@ -115,12 +113,17 @@ export default function App() {
               </li>
               <li>
                 <a href="#vehicles" onClick={(e) => { e.preventDefault(); setActiveTab('vehicles'); }}>
-                  Vehicles Fleet
+                  Fleet Catalog
                 </a>
               </li>
               <li>
                 <a href="#booking" onClick={(e) => { e.preventDefault(); setActiveTab('booking'); }}>
-                  Reservation Form
+                  Book a Vehicle
+                </a>
+              </li>
+              <li>
+                <a href="#bookings-list" onClick={(e) => { e.preventDefault(); setActiveTab('bookings-list'); }}>
+                  Manage Bookings
                 </a>
               </li>
               <li>
@@ -132,18 +135,18 @@ export default function App() {
           </div>
 
           <div>
-            <h4 style={{ fontSize: '1rem', marginBottom: '12px' }}>Tech Stack</h4>
+            <h4 style={{ fontSize: '1rem', marginBottom: '12px' }}>Enterprise Architecture</h4>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', lineHeight: '1.8' }}>
-              • <strong>Frontend:</strong> React.js + Vite<br />
-              • <strong>Backend:</strong> Node.js + Express.js<br />
-              • <strong>Database:</strong> MySQL + mysql2<br />
-              • <strong>Architecture:</strong> REST API
+              • <strong>Frontend:</strong> React 18 + Vite (SPA)<br />
+              • <strong>Backend:</strong> Node.js + Express.js API<br />
+              • <strong>Database:</strong> MySQL 8.0 with Pool & Auto-Fallback<br />
+              • <strong>Security:</strong> Input sanitized REST endpoints
             </p>
           </div>
         </div>
 
         <div className="container footer-bottom">
-          © {new Date().getFullYear()} Vehicle Rental System | Full Stack Development Project.
+          © {new Date().getFullYear()} DrivePulse Mobility Network | All Rights Reserved.
         </div>
       </footer>
     </div>
