@@ -71,6 +71,7 @@ export default function App() {
           <Booking
             vehicles={vehicles}
             preselectedVehicle={preselectedVehicle}
+            initialSubTab="new"
             onBookingCreated={() => {
               fetchVehicles(); // Sync vehicle availability
             }}
@@ -81,6 +82,7 @@ export default function App() {
           <Booking
             vehicles={vehicles}
             preselectedVehicle={null}
+            initialSubTab="history"
             onBookingCreated={fetchVehicles}
           />
         )}

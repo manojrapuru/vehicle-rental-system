@@ -135,7 +135,9 @@ async function query(sql, params = []) {
     const id = parseInt(params[params.length - 1], 10);
     const vehicle = mockData.vehicles.find((v) => v.id === id);
     if (vehicle) {
-      if (params.length === 4) {
+      if (normalizedSql.includes('availability = ?') && params.length === 2) {
+        vehicle.availability = params[0];
+      } else if (params.length === 4 || (params.length === 5 && normalizedSql.includes('name ='))) {
         vehicle.name = params[0];
         vehicle.type = params[1];
         vehicle.rent = parseInt(params[2], 10);
@@ -158,6 +160,28 @@ async function query(sql, params = []) {
 
   // 5. SELECT BOOKINGS (WITH JOIN)
   if (normalizedSql.startsWith('select') && normalizedSql.includes('from bookings')) {
+    if (normalizedSql.includes('where id =') || normalizedSql.includes('where b.id =')) {
+      const id = parseInt(params[0], 10);
+      const b = mockData.bookings.find((item) => item.id === id);
+      if (!b) return [];
+      const v = mockData.vehicles.find((veh) => veh.id === b.vehicle_id) || {};
+      return [{
+        id: b.id,
+        customer_name: b.customer_name,
+        email: b.email,
+        phone: b.phone,
+        vehicle_id: b.vehicle_id,
+        vehicle_name: b.vehicle_name || v.name || 'Vehicle',
+        vehicle_type: b.vehicle_type || v.type || 'Car',
+        daily_rate: v.rent || 0,
+        start_date: b.start_date,
+        end_date: b.end_date,
+        total_amount: b.total_amount,
+        booking_status: b.booking_status,
+        created_at: b.created_at || new Date().toISOString(),
+      }];
+    }
+
     return mockData.bookings.map((b) => {
       const v = mockData.vehicles.find((veh) => veh.id === b.vehicle_id) || {};
       return {
@@ -172,7 +196,8 @@ async function query(sql, params = []) {
         start_date: b.start_date,
         end_date: b.end_date,
         total_amount: b.total_amount,
-        booking_status: b.booking_status,
+        booking_status: b.booking_status || 'Confirmed',
+        created_at: b.created_at || new Date().toISOString(),
       };
     });
   }
@@ -180,28 +205,55 @@ async function query(sql, params = []) {
   // 6. INSERT BOOKING
   if (normalizedSql.startsWith('insert into bookings')) {
     const newId = mockData.bookings.length ? Math.max(...mockData.bookings.map((b) => b.id)) + 1 : 1;
-    const v = mockData.vehicles.find((veh) => veh.id === parseInt(params[3], 10));
+    const vId = parseInt(params[3], 10);
+    const v = mockData.vehicles.find((veh) => veh.id === vId);
+    if (v) {
+      v.availability = 'Not Available';
+    }
     const newBooking = {
       id: newId,
       customer_name: params[0],
       email: params[1],
       phone: params[2],
-      vehicle_id: parseInt(params[3], 10),
+      vehicle_id: vId,
       vehicle_name: v ? v.name : 'Selected Vehicle',
       vehicle_type: v ? v.type : 'Car',
       start_date: params[4],
       end_date: params[5],
       total_amount: parseFloat(params[6]),
       booking_status: params[7] || 'Confirmed',
+      created_at: new Date().toISOString(),
     };
-    mockData.bookings.push(newBooking);
+    mockData.bookings.unshift(newBooking);
     return { insertId: newId, affectedRows: 1 };
   }
 
-  // 7. DELETE BOOKING
+  // 7. UPDATE BOOKING
+  if (normalizedSql.startsWith('update bookings')) {
+    const id = parseInt(params[params.length - 1], 10);
+    const booking = mockData.bookings.find((b) => b.id === id);
+    if (booking) {
+      if (normalizedSql.includes('booking_status =')) {
+        booking.booking_status = params[0];
+        if (params[0] === 'Cancelled' || params[0] === 'Completed') {
+          const v = mockData.vehicles.find((veh) => veh.id === booking.vehicle_id);
+          if (v) v.availability = 'Available';
+        }
+      }
+      return { affectedRows: 1 };
+    }
+    return { affectedRows: 0 };
+  }
+
+  // 8. DELETE BOOKING
   if (normalizedSql.startsWith('delete from bookings')) {
     const id = parseInt(params[0], 10);
     const initialLen = mockData.bookings.length;
+    const booking = mockData.bookings.find((b) => b.id === id);
+    if (booking) {
+      const v = mockData.vehicles.find((veh) => veh.id === booking.vehicle_id);
+      if (v) v.availability = 'Available';
+    }
     mockData.bookings = mockData.bookings.filter((b) => b.id !== id);
     return { affectedRows: initialLen - mockData.bookings.length };
   }

@@ -88,7 +88,7 @@ exports.createBooking = async (req, res) => {
     const totalAmount = rentalDays * Number(vehicle.rent);
     const bookingStatus = 'Confirmed';
 
-    // 3. Insert booking into MySQL
+    // 3. Insert booking into database
     const sql = `
       INSERT INTO bookings (customer_name, email, phone, vehicle_id, start_date, end_date, total_amount, booking_status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -103,6 +103,13 @@ exports.createBooking = async (req, res) => {
       totalAmount,
       bookingStatus,
     ]);
+
+    // 4. Update vehicle status to Not Available
+    try {
+      await db.query('UPDATE vehicles SET availability = ? WHERE id = ?', ['Not Available', parseInt(vehicle_id, 10)]);
+    } catch (updateErr) {
+      console.warn('Could not update vehicle availability:', updateErr.message);
+    }
 
     return res.status(201).json({
       success: true,
@@ -133,7 +140,64 @@ exports.createBooking = async (req, res) => {
   }
 };
 
-// @desc    Delete a booking by ID
+// @desc    Update booking status (Confirmed, Completed, Cancelled)
+// @route   PATCH /api/bookings/:id/status
+exports.updateBookingStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid booking ID' });
+    }
+
+    const validStatuses = ['Confirmed', 'Active', 'Completed', 'Cancelled'];
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`,
+      });
+    }
+
+    const bookings = await db.query('SELECT * FROM bookings WHERE id = ?', [id]);
+    if (!bookings || bookings.length === 0) {
+      return res.status(404).json({ success: false, message: `Booking #${id} not found` });
+    }
+
+    const booking = bookings[0];
+    await db.query('UPDATE bookings SET booking_status = ? WHERE id = ?', [status, id]);
+
+    // If cancelled or completed, release vehicle availability
+    if (status === 'Cancelled' || status === 'Completed') {
+      try {
+        await db.query('UPDATE vehicles SET availability = ? WHERE id = ?', ['Available', booking.vehicle_id]);
+      } catch (e) {
+        console.warn('Error releasing vehicle availability:', e.message);
+      }
+    } else if (status === 'Confirmed' || status === 'Active') {
+      try {
+        await db.query('UPDATE vehicles SET availability = ? WHERE id = ?', ['Not Available', booking.vehicle_id]);
+      } catch (e) {
+        console.warn('Error locking vehicle availability:', e.message);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Booking #${id} status updated to ${status}`,
+      data: { id: parseInt(id, 10), status },
+    });
+  } catch (error) {
+    console.error('Error updating booking status:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while updating booking status',
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Delete / Cancel a booking by ID
 // @route   DELETE /api/bookings/:id
 exports.deleteBooking = async (req, res) => {
   try {
@@ -143,7 +207,18 @@ exports.deleteBooking = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid booking ID' });
     }
 
-    const result = await db.query('DELETE FROM bookings WHERE id = ?', [id]);
+    const bookings = await db.query('SELECT * FROM bookings WHERE id = ?', [id]);
+    if (bookings && bookings.length > 0) {
+      const vehicleId = bookings[0].vehicle_id;
+      // Free up vehicle
+      try {
+        await db.query('UPDATE vehicles SET availability = ? WHERE id = ?', ['Available', vehicleId]);
+      } catch (e) {
+        console.warn('Error freeing vehicle on delete:', e.message);
+      }
+    }
+
+    await db.query('DELETE FROM bookings WHERE id = ?', [id]);
 
     return res.status(200).json({
       success: true,

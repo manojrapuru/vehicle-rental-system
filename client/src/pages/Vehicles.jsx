@@ -5,6 +5,7 @@ import VehicleList from '../components/VehicleList';
  * Vehicles Page Component
  * Demonstrates:
  * - Full CRUD Integration (Read, Create, Update, Delete)
+ * - Quick Availability Toggling
  * - State management with useState
  * - Modal forms for adding/editing vehicles
  * - Error and loading feedback
@@ -54,6 +55,32 @@ export default function Vehicles({
     setModalOpen(true);
   };
 
+  // Quick toggle vehicle availability
+  const handleToggleAvailability = async (vehicle) => {
+    const newStatus = vehicle.availability === 'Available' ? 'Not Available' : 'Available';
+    try {
+      const res = await fetch(`/api/vehicles/${vehicle.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: vehicle.name,
+          type: vehicle.type,
+          rent: vehicle.rent,
+          availability: newStatus,
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Failed to update availability');
+      }
+      setSuccessToast(`Vehicle #${vehicle.id} (${vehicle.name}) marked as ${newStatus}`);
+      setTimeout(() => setSuccessToast(''), 3000);
+      onRefresh();
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    }
+  };
+
   // Delete vehicle handler
   const handleDelete = async (id) => {
     if (window.confirm(`Are you sure you want to delete vehicle #${id}?`)) {
@@ -63,7 +90,7 @@ export default function Vehicles({
         if (!res.ok || !result.success) {
           throw new Error(result.message || 'Failed to delete vehicle');
         }
-        setSuccessToast(`Vehicle #${id} deleted successfully.`);
+        setSuccessToast(`Vehicle #${id} deleted successfully from database.`);
         setTimeout(() => setSuccessToast(''), 3000);
         onRefresh();
       } catch (err) {
@@ -103,9 +130,9 @@ export default function Vehicles({
       }
 
       setSuccessToast(
-        editingVehicle ? 'Vehicle updated successfully!' : 'New vehicle added to fleet!'
+        editingVehicle ? `Vehicle #${editingVehicle.id} updated successfully!` : 'New vehicle added to fleet database!'
       );
-      setTimeout(() => setSuccessToast(''), 3000);
+      setTimeout(() => setSuccessToast(''), 3500);
       setModalOpen(false);
       onRefresh();
     } catch (err) {
@@ -121,7 +148,7 @@ export default function Vehicles({
         <div>
           <h1 style={{ fontSize: '2.2rem' }}>Vehicle Fleet Catalog</h1>
           <p style={{ color: 'var(--text-muted)' }}>
-            Explore available cars, bikes, vans, SUVs, and electric vehicles in our database.
+            Explore available cars, bikes, vans, SUVs, and electric vehicles with real-time MySQL database sync.
           </p>
         </div>
 
@@ -131,16 +158,16 @@ export default function Vehicles({
       </div>
 
       {successToast && (
-        <div className="alert alert-success">
+        <div className="alert alert-success" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
           <span>✅</span>
           <span>{successToast}</span>
         </div>
       )}
 
       {error && (
-        <div className="alert alert-danger">
+        <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
           <span>⚠️</span>
-          <span>Failed to connect to API: {error}.</span>
+          <span>Failed to connect to API: {error}</span>
           <button
             className="btn btn-secondary btn-sm"
             style={{ marginLeft: 'auto' }}
@@ -163,13 +190,14 @@ export default function Vehicles({
           onEdit={handleOpenEdit}
           onDelete={handleDelete}
           onAddNew={handleOpenAdd}
+          onToggleAvailability={handleToggleAvailability}
         />
       )}
 
       {/* Add / Edit Vehicle Modal */}
       {modalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay" onClick={() => setModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>{editingVehicle ? `✏️ Edit Vehicle #${editingVehicle.id}` : '➕ Add New Vehicle to Fleet'}</h3>
               <button className="btn btn-secondary btn-sm" onClick={() => setModalOpen(false)}>
@@ -180,17 +208,17 @@ export default function Vehicles({
             <form onSubmit={handleSubmitForm}>
               <div className="modal-body">
                 {formError && (
-                  <div className="alert alert-danger" style={{ padding: '10px' }}>
+                  <div className="alert alert-danger" style={{ padding: '10px', marginBottom: '16px' }}>
                     {formError}
                   </div>
                 )}
 
                 <div className="form-group">
-                  <label className="form-label">Vehicle Name</label>
+                  <label className="form-label">Vehicle Name & Model</label>
                   <input
                     type="text"
                     className="form-control"
-                    placeholder="e.g. Honda City"
+                    placeholder="e.g. Honda City ZX, Royal Enfield Hunter 350"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
@@ -214,7 +242,7 @@ export default function Vehicles({
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Daily Rent (₹)</label>
+                    <label className="form-label">Daily Rent (₹/day)</label>
                     <input
                       type="number"
                       className="form-control"
@@ -228,14 +256,14 @@ export default function Vehicles({
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Availability Status</label>
+                  <label className="form-label">Initial Availability Status</label>
                   <select
                     className="form-control"
                     value={formData.availability}
                     onChange={(e) => setFormData({ ...formData, availability: e.target.value })}
                   >
-                    <option value="Available">Available</option>
-                    <option value="Not Available">Not Available</option>
+                    <option value="Available">Available for Rent</option>
+                    <option value="Not Available">Not Available / Booked</option>
                   </select>
                 </div>
               </div>
@@ -249,7 +277,7 @@ export default function Vehicles({
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={submitting}>
-                  {submitting ? 'Saving to Database...' : editingVehicle ? 'Update Vehicle' : 'Add Vehicle'}
+                  {submitting ? 'Saving to Database...' : editingVehicle ? 'Update Vehicle' : 'Add to Fleet'}
                 </button>
               </div>
             </form>
