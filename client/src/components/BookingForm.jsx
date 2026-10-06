@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 
 /**
- * BookingForm Component
+ * BookingForm Component (Real-World Commercial Grade)
  * Includes:
- * - Real-time rental calculation
- * - Promo code application (e.g. DRIVE20, LAB100)
- * - Payment mode selection
- * - Interactive Invoice / Confirmation modal with Print / PDF action
+ * - Pick-up / Delivery Location selector
+ * - Self-Drive vs Chauffeur Driver option
+ * - Damage Protection Insurance Tier selection
+ * - Live dynamic cost calculation with promo codes
+ * - Official Invoice / Receipt Modal with Print & Download capabilities
  */
 export default function BookingForm({
   vehicles,
@@ -25,6 +26,9 @@ export default function BookingForm({
     vehicle_id: preselectedVehicle ? preselectedVehicle.id : '',
     start_date: todayStr,
     end_date: tomorrowStr,
+    pickup_location: 'City Airport Terminal (T1 & T2)',
+    driver_option: 'self-drive', // 'self-drive' or 'chauffeur' (+₹600/day)
+    insurance_plan: 'standard', // 'standard' (₹0) or 'zero-dep' (+₹250/day)
     payment_method: 'UPI / QR Code',
     notes: '',
   });
@@ -32,7 +36,9 @@ export default function BookingForm({
   // 2. Pricing & discount states
   const [selectedVehicle, setSelectedVehicle] = useState(preselectedVehicle || null);
   const [rentalDays, setRentalDays] = useState(1);
-  const [subTotal, setSubTotal] = useState(0);
+  const [baseRentTotal, setBaseRentTotal] = useState(0);
+  const [driverAddonCost, setDriverAddonCost] = useState(0);
+  const [insuranceCost, setInsuranceCost] = useState(0);
   const [discountAmount, setDiscountAmount] = useState(0);
   const [promoCode, setPromoCode] = useState('');
   const [appliedPromo, setAppliedPromo] = useState('');
@@ -41,7 +47,7 @@ export default function BookingForm({
   const [errorMsg, setErrorMsg] = useState('');
   const [confirmedBooking, setConfirmedBooking] = useState(null);
 
-  // Sync when preselectedVehicle prop changes
+  // Sync when preselectedVehicle changes
   useEffect(() => {
     if (preselectedVehicle) {
       setFormData((prev) => ({ ...prev, vehicle_id: preselectedVehicle.id }));
@@ -61,61 +67,80 @@ export default function BookingForm({
 
   // Calculate rental duration and amount dynamically
   useEffect(() => {
+    let days = 1;
     if (formData.start_date && formData.end_date) {
       const start = new Date(formData.start_date);
       const end = new Date(formData.end_date);
       const diffTime = end - start;
-      const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      const validDays = days > 0 ? days : 1;
-      setRentalDays(validDays);
+      const calculated = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      days = calculated > 0 ? calculated : 1;
+    }
+    setRentalDays(days);
 
-      if (selectedVehicle) {
-        const rawSubtotal = validDays * Number(selectedVehicle.rent);
-        setSubTotal(rawSubtotal);
+    if (selectedVehicle) {
+      const base = days * Number(selectedVehicle.rent);
+      setBaseRentTotal(base);
 
-        // Re-apply discount if promo active
-        if (appliedPromo === 'DRIVE20') {
-          setDiscountAmount(Math.round(rawSubtotal * 0.2));
-        } else if (appliedPromo === 'LAB100') {
-          setDiscountAmount(Math.min(100, rawSubtotal));
-        } else {
-          setDiscountAmount(0);
-        }
+      // Driver fee: ₹600/day if chauffeur selected (not applicable for bikes)
+      const isChauffeur = formData.driver_option === 'chauffeur' && selectedVehicle.type?.toLowerCase() !== 'bike';
+      const driverCost = isChauffeur ? days * 600 : 0;
+      setDriverAddonCost(driverCost);
+
+      // Insurance fee: ₹250/day if zero-dep selected
+      const insCost = formData.insurance_plan === 'zero-dep' ? days * 250 : 0;
+      setInsuranceCost(insCost);
+
+      const subtotalBeforeDiscount = base + driverCost + insCost;
+
+      // Apply promo discounts
+      if (appliedPromo === 'DRIVE20') {
+        setDiscountAmount(Math.round(subtotalBeforeDiscount * 0.2));
+      } else if (appliedPromo === 'LAB100') {
+        setDiscountAmount(Math.min(100, subtotalBeforeDiscount));
+      } else {
+        setDiscountAmount(0);
       }
-    } else if (selectedVehicle) {
-      setRentalDays(1);
-      const rawSubtotal = Number(selectedVehicle.rent);
-      setSubTotal(rawSubtotal);
-      setDiscountAmount(0);
     } else {
-      setRentalDays(1);
-      setSubTotal(0);
+      setBaseRentTotal(0);
+      setDriverAddonCost(0);
+      setInsuranceCost(0);
       setDiscountAmount(0);
     }
-  }, [formData.start_date, formData.end_date, selectedVehicle, appliedPromo]);
+  }, [
+    formData.start_date,
+    formData.end_date,
+    formData.driver_option,
+    formData.insurance_plan,
+    selectedVehicle,
+    appliedPromo,
+  ]);
 
   // Apply promo code handler
   const handleApplyPromo = (e) => {
     e.preventDefault();
     const code = promoCode.trim().toUpperCase();
+    const subtotal = baseRentTotal + driverAddonCost + insuranceCost;
+
     if (code === 'DRIVE20') {
       setAppliedPromo('DRIVE20');
-      const disc = Math.round(subTotal * 0.2);
+      const disc = Math.round(subtotal * 0.2);
       setDiscountAmount(disc);
-      setPromoMessage('🎉 Promo DRIVE20 Applied! 20% discount added.');
+      setPromoMessage('🎉 Promo DRIVE20 Applied! 20% discount applied.');
     } else if (code === 'LAB100') {
       setAppliedPromo('LAB100');
-      const disc = Math.min(100, subTotal);
+      const disc = Math.min(100, subtotal);
       setDiscountAmount(disc);
-      setPromoMessage('🎉 Promo LAB100 Applied! ₹100 flat discount added.');
+      setPromoMessage('🎉 Promo LAB100 Applied! ₹100 flat discount applied.');
     } else {
       setPromoMessage('❌ Invalid coupon code. Try DRIVE20 or LAB100');
       setTimeout(() => setPromoMessage(''), 3000);
     }
   };
 
-  const gstTax = Math.round(subTotal * 0.05); // 5% GST
-  const finalPayable = Math.max(0, subTotal - discountAmount + gstTax);
+  const subTotalCombined = baseRentTotal + driverAddonCost + insuranceCost;
+  const taxableAmount = Math.max(0, subTotalCombined - discountAmount);
+  const gstTax = Math.round(taxableAmount * 0.05); // 5% GST
+  const finalPayable = taxableAmount + gstTax;
 
   // Handle input changes
   const handleChange = (e) => {
@@ -168,6 +193,9 @@ export default function BookingForm({
         start_date: formData.start_date,
         end_date: formData.end_date,
         total_amount: finalPayable,
+        pickup_location: formData.pickup_location,
+        driver_option: formData.driver_option,
+        insurance_plan: formData.insurance_plan,
         payment_method: formData.payment_method,
       };
 
@@ -183,7 +211,13 @@ export default function BookingForm({
         throw new Error(result.message || 'Error occurred while saving reservation');
       }
 
-      setConfirmedBooking(result.data);
+      setConfirmedBooking({
+        ...result.data,
+        pickup_location: formData.pickup_location,
+        driver_option: formData.driver_option,
+        insurance_plan: formData.insurance_plan,
+        vehicle_image: selectedVehicle?.image,
+      });
 
       if (onBookingSuccess) {
         onBookingSuccess(result.data);
@@ -208,6 +242,9 @@ export default function BookingForm({
       vehicle_id: '',
       start_date: todayStr,
       end_date: tomorrowStr,
+      pickup_location: 'City Airport Terminal (T1 & T2)',
+      driver_option: 'self-drive',
+      insurance_plan: 'standard',
       payment_method: 'UPI / QR Code',
       notes: '',
     });
@@ -221,12 +258,15 @@ export default function BookingForm({
   return (
     <div>
       {/* 2-Column Booking Layout */}
-      <div className="booking-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+      <div className="booking-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '28px' }}>
         {/* Left Column: Form */}
         <div className="card" style={{ padding: '28px' }}>
-          <h2 style={{ fontSize: '1.4rem', marginBottom: '8px' }}>📝 Customer & Trip Details</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginBottom: '20px' }}>
-            Fill in your details below to reserve your vehicle with instant confirmation.
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 style={{ fontSize: '1.4rem', margin: 0 }}>📝 Rental Booking Form</h2>
+            <span className="badge-available">Instant Confirmation</span>
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginBottom: '22px' }}>
+            Book your self-drive or chauffeur-driven vehicle with full insurance coverage.
           </p>
 
           {errorMsg && (
@@ -257,7 +297,7 @@ export default function BookingForm({
                   type="email"
                   name="email"
                   className="form-control"
-                  placeholder="e.g. rahul@example.com"
+                  placeholder="e.g. rahul.sharma@example.com"
                   value={formData.email}
                   onChange={handleChange}
                   required
@@ -328,8 +368,55 @@ export default function BookingForm({
               </div>
             </div>
 
+            {/* Pick-up / Delivery Location */}
             <div className="form-group">
-              <label className="form-label">Payment Preference</label>
+              <label className="form-label">Pick-up & Drop-off Hub Location</label>
+              <select
+                name="pickup_location"
+                className="form-control"
+                value={formData.pickup_location}
+                onChange={handleChange}
+              >
+                <option value="City Airport Terminal (T1 & T2)">✈️ City Airport Terminal (T1 & T2)</option>
+                <option value="Central Railway Station Hub">🚆 Central Railway Station Hub</option>
+                <option value="Tech Park / Downtown Hub">🏢 Tech Park / Downtown Center</option>
+                <option value="Doorstep Delivery (Home / Hotel)">🏠 Doorstep Delivery to Address (+Free)</option>
+              </select>
+            </div>
+
+            {/* Drive Mode & Insurance Options */}
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Driving Preference</label>
+                <select
+                  name="driver_option"
+                  className="form-control"
+                  value={formData.driver_option}
+                  onChange={handleChange}
+                >
+                  <option value="self-drive">🚗 Self-Drive (Included)</option>
+                  <option value="chauffeur" disabled={selectedVehicle?.type?.toLowerCase() === 'bike'}>
+                    👨‍✈️ With Chauffeur (+₹600/day)
+                  </option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Protection Package</label>
+                <select
+                  name="insurance_plan"
+                  className="form-control"
+                  value={formData.insurance_plan}
+                  onChange={handleChange}
+                >
+                  <option value="standard">🛡️ Standard Basic Coverage (Free)</option>
+                  <option value="zero-dep">🌟 Zero-Dep Comprehensive (+₹250/day)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Payment Mode</label>
               <select
                 name="payment_method"
                 className="form-control"
@@ -337,8 +424,8 @@ export default function BookingForm({
                 onChange={handleChange}
               >
                 <option value="UPI / QR Code">📱 UPI (Google Pay, PhonePe, Paytm)</option>
-                <option value="Credit / Debit Card">💳 Credit / Debit Card</option>
-                <option value="Net Banking">🏦 Net Banking</option>
+                <option value="Credit / Debit Card">💳 Credit / Debit Card (Visa, Mastercard)</option>
+                <option value="Net Banking">🏦 Net Banking (All Major Banks)</option>
                 <option value="Pay at Pickup">💵 Pay Cash upon Vehicle Pickup</option>
               </select>
             </div>
@@ -350,34 +437,44 @@ export default function BookingForm({
               disabled={loading || !formData.vehicle_id || (selectedVehicle && selectedVehicle.availability !== 'Available')}
             >
               {loading
-                ? 'Processing Reservation...'
+                ? 'Processing Your Reservation...'
                 : selectedVehicle && selectedVehicle.availability !== 'Available'
                 ? 'Selected Vehicle Is Booked'
-                : `⚡ Confirm & Reserve (₹${finalPayable.toLocaleString('en-IN')})`}
+                : `⚡ Complete Reservation (₹${finalPayable.toLocaleString('en-IN')})`}
             </button>
           </form>
         </div>
 
-        {/* Right Column: Dynamic Price Breakdown & Promo */}
+        {/* Right Column: Dynamic Price Breakdown & Selected Vehicle Visual */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Selected Vehicle Preview Card */}
-          <div className="card" style={{ padding: '24px' }}>
-            <h3 style={{ fontSize: '1.2rem', marginBottom: '14px' }}>🚗 Vehicle Summary</h3>
+          {/* Selected Vehicle Preview Card with Real Photo */}
+          <div className="card" style={{ padding: '24px', overflow: 'hidden' }}>
+            <h3 style={{ fontSize: '1.2rem', marginBottom: '14px' }}>🚗 Selected Ride Summary</h3>
 
             {selectedVehicle ? (
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                {selectedVehicle.image && (
+                  <div style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden', height: '160px', marginBottom: '14px' }}>
+                    <img
+                      src={selectedVehicle.image}
+                      alt={selectedVehicle.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                   <div>
-                    <h4 style={{ fontSize: '1.15rem' }}>{selectedVehicle.name}</h4>
-                    <span className="vehicle-type-tag" style={{ display: 'inline-block', marginTop: '4px' }}>
+                    <h4 style={{ fontSize: '1.2rem', margin: 0 }}>{selectedVehicle.name}</h4>
+                    <span className="vehicle-type-tag" style={{ display: 'inline-block', marginTop: '6px' }}>
                       {selectedVehicle.type}
                     </span>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--primary)' }}>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 'bold', color: 'var(--primary)' }}>
                       ₹{selectedVehicle.rent}
                     </div>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>per day</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>per 24 hrs</span>
                   </div>
                 </div>
 
@@ -388,39 +485,54 @@ export default function BookingForm({
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Base Rent ({rentalDays} × ₹{selectedVehicle.rent}):</span>
-                    <span>₹{subTotal.toLocaleString('en-IN')}</span>
+                    <span>₹{baseRentTotal.toLocaleString('en-IN')}</span>
                   </div>
+
+                  {driverAddonCost > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Chauffeur Driver ({rentalDays} × ₹600):</span>
+                      <span>₹{driverAddonCost.toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+
+                  {insuranceCost > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Zero-Dep Insurance ({rentalDays} × ₹250):</span>
+                      <span>₹{insuranceCost.toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+
+                  {discountAmount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontWeight: 'bold' }}>
+                      <span>Discount Coupon ({appliedPromo}):</span>
+                      <span>- ₹{discountAmount.toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--text-muted)' }}>GST (5%):</span>
                     <span>₹{gstTax.toLocaleString('en-IN')}</span>
                   </div>
 
-                  {discountAmount > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontWeight: 'bold' }}>
-                      <span>Discount ({appliedPromo}):</span>
-                      <span>- ₹{discountAmount.toLocaleString('en-IN')}</span>
-                    </div>
-                  )}
-
-                  <div style={{ borderTop: '2px dashed var(--border)', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '1.15rem', fontWeight: 'bold' }}>
-                    <span>Estimated Total:</span>
+                  <div style={{ borderTop: '2px dashed var(--border)', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: 'bold' }}>
+                    <span>Final Payable Total:</span>
                     <span style={{ color: 'var(--primary)' }}>₹{finalPayable.toLocaleString('en-IN')}</span>
                   </div>
                 </div>
               </div>
             ) : (
-              <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)' }}>
-                <div style={{ fontSize: '2.4rem', marginBottom: '8px' }}>🚘</div>
-                <p>Select a vehicle on the left to view the real-time cost breakdown.</p>
+              <div style={{ textAlign: 'center', padding: '36px 10px', color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: '3rem', marginBottom: '8px' }}>🚘</div>
+                <p>Select any available vehicle on the left to view the itemized price breakdown.</p>
               </div>
             )}
           </div>
 
           {/* Promo Code Card */}
           <div className="card" style={{ padding: '20px' }}>
-            <h4 style={{ fontSize: '1rem', marginBottom: '8px' }}>🏷️ Have a Promo Code?</h4>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
-              Use coupon <strong>DRIVE20</strong> for 20% off or <strong>LAB100</strong> for ₹100 off!
+            <h4 style={{ fontSize: '1rem', marginBottom: '8px' }}>🏷️ Apply Promo Code</h4>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
+              Use coupon <strong>DRIVE20</strong> for 20% off or <strong>LAB100</strong> for ₹100 flat off!
             </p>
 
             <form onSubmit={handleApplyPromo} style={{ display: 'flex', gap: '8px' }}>
@@ -428,7 +540,7 @@ export default function BookingForm({
                 type="text"
                 className="form-control"
                 style={{ textTransform: 'uppercase', fontSize: '0.85rem' }}
-                placeholder="Enter DRIVE20"
+                placeholder="Enter promo code"
                 value={promoCode}
                 onChange={(e) => setPromoCode(e.target.value)}
               />
@@ -449,11 +561,11 @@ export default function BookingForm({
       {/* Booking Confirmation / Invoice Modal */}
       {confirmedBooking && (
         <div className="modal-overlay" onClick={() => setConfirmedBooking(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '620px' }}>
             <div className="modal-header" style={{ background: 'var(--primary)', color: '#fff', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)' }}>
               <div>
-                <h3 style={{ color: '#fff', margin: 0 }}>🎉 Booking Confirmed!</h3>
-                <span style={{ fontSize: '0.82rem', opacity: 0.9 }}>Reservation #{confirmedBooking.id} • Vehicle Rental System</span>
+                <h3 style={{ color: '#fff', margin: 0 }}>🎉 Reservation Confirmed!</h3>
+                <span style={{ fontSize: '0.82rem', opacity: 0.9 }}>Booking Reference ID #{confirmedBooking.id} • Official Tax Invoice</span>
               </div>
               <button
                 className="btn btn-secondary btn-sm"
@@ -465,38 +577,46 @@ export default function BookingForm({
             </div>
 
             <div className="modal-body" style={{ padding: '24px' }}>
-              <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: '4px' }}>✅</div>
-                <h4 style={{ color: 'var(--primary)', fontSize: '1.2rem' }}>Vehicle Reserved Successfully</h4>
+              <div style={{ textAlign: 'center', marginBottom: '18px' }}>
+                <div style={{ fontSize: '2.8rem', marginBottom: '4px' }}>✅</div>
+                <h4 style={{ color: 'var(--primary)', fontSize: '1.3rem' }}>Vehicle Reserved & Booked</h4>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                  A confirmation email has been dispatched to <strong>{confirmedBooking.email}</strong>.
+                  Confirmation SMS & Email sent to <strong>{confirmedBooking.email}</strong> / <strong>{confirmedBooking.phone}</strong>.
                 </p>
               </div>
 
               {/* Invoice Breakdown */}
-              <div style={{ background: 'var(--bg-alt)', borderRadius: 'var(--radius-md)', padding: '16px', fontSize: '0.88rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ background: 'var(--bg-alt)', borderRadius: 'var(--radius-md)', padding: '18px', fontSize: '0.88rem', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Customer Name:</span>
                   <strong>{confirmedBooking.customer_name}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Phone:</span>
-                  <span>{confirmedBooking.phone}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Vehicle Booked:</span>
+                  <span style={{ color: 'var(--text-muted)' }}>Vehicle Model:</span>
                   <strong>{confirmedBooking.vehicle_name} ({confirmedBooking.vehicle_type})</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Rental Period:</span>
-                  <span>{confirmedBooking.start_date} to {confirmedBooking.end_date} ({confirmedBooking.rental_days || rentalDays} Days)</span>
+                  <span style={{ color: 'var(--text-muted)' }}>Pick-up / Drop Location:</span>
+                  <span>{confirmedBooking.pickup_location || formData.pickup_location}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Trip Dates:</span>
+                  <span>{confirmedBooking.start_date} to {confirmedBooking.end_date} ({rentalDays} Days)</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Drive Preference:</span>
+                  <span style={{ textTransform: 'capitalize' }}>{confirmedBooking.driver_option || formData.driver_option}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Protection Plan:</span>
+                  <span>{formData.insurance_plan === 'zero-dep' ? 'Zero-Dep Comprehensive' : 'Standard Basic'}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Booking Status:</span>
                   <span className="badge-available">{confirmedBooking.booking_status || 'Confirmed'}</span>
                 </div>
-                <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', fontSize: '1.05rem', fontWeight: 'bold' }}>
-                  <span>Total Rent Paid / Due:</span>
+                <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', fontSize: '1.15rem', fontWeight: 'bold' }}>
+                  <span>Total Amount Paid / Due:</span>
                   <span style={{ color: 'var(--primary)' }}>₹{Number(confirmedBooking.total_amount).toLocaleString('en-IN')}</span>
                 </div>
               </div>
@@ -504,7 +624,7 @@ export default function BookingForm({
 
             <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
               <button className="btn btn-secondary btn-sm" onClick={handlePrint}>
-                🖨️ Print Invoice
+                🖨️ Print / Save PDF
               </button>
 
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -512,7 +632,7 @@ export default function BookingForm({
                   className="btn btn-secondary btn-sm"
                   onClick={resetForm}
                 >
-                  Book Another
+                  Book Another Ride
                 </button>
                 {onViewAllBookings && (
                   <button
@@ -522,7 +642,7 @@ export default function BookingForm({
                       onViewAllBookings();
                     }}
                   >
-                    View in My Bookings →
+                    Go to My Bookings →
                   </button>
                 )}
               </div>

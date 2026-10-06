@@ -4,10 +4,10 @@ import VehicleCard from '../components/VehicleCard';
 /**
  * Home Page Component
  * Contains:
- * - Hero section with Quick Search Widget and CTA buttons
- * - Live Fleet statistics
+ * - Hero section with Quick Search Widget & Statistics
  * - Featured Available Vehicles preview
  * - Premier Rental Services
+ * - Verified Customer Reviews & Testimonials
  * - Interactive FAQ accordion
  * - Contact Us section
  */
@@ -26,6 +26,39 @@ export default function Home({ vehicles, setActiveTab, onBookVehicle }) {
     setActiveTab('vehicles');
   };
 
+  const reviews = [
+    {
+      name: 'Aarav Mehta',
+      city: 'Bangalore',
+      vehicle: 'Toyota Innova Crysta',
+      rating: 5,
+      date: '2 days ago',
+      comment:
+        'Outstanding service! The car was delivered directly to the airport on time, impeccably clean and smooth on the highway. Zero hassle.',
+      avatar: '👨‍💼',
+    },
+    {
+      name: 'Pooja Sundaram',
+      city: 'Hyderabad',
+      vehicle: 'Tata Nexon EV',
+      rating: 5,
+      date: '1 week ago',
+      comment:
+        'Rented the EV for a weekend trip. Very economical, full battery charge upon pickup, and smooth booking flow. Highly recommend!',
+      avatar: '👩‍💻',
+    },
+    {
+      name: 'Vikram Joshi',
+      city: 'Mumbai',
+      vehicle: 'Royal Enfield Classic 350',
+      rating: 5,
+      date: '3 weeks ago',
+      comment:
+        'Bike was in mint condition. The instant invoice generation and transparent pricing made the entire rental super stress-free.',
+      avatar: '🏍️',
+    },
+  ];
+
   const faqs = [
     {
       q: 'What documents are required to rent a vehicle?',
@@ -36,8 +69,8 @@ export default function Home({ vehicles, setActiveTab, onBookVehicle }) {
       a: 'We offer zero-deposit rentals on most economy cars and bikes. Luxury vehicles require a nominal refundable deposit.',
     },
     {
-      q: 'What is the fuel policy?',
-      a: 'We operate on a Same-to-Same fuel policy. The fuel level when you return the vehicle should match the level at pickup.',
+      q: 'What is the fuel & charging policy?',
+      a: 'We operate on a Same-to-Same fuel/charge policy. The fuel/battery level when you return the vehicle should match the level at pickup.',
     },
     {
       q: 'Can I cancel or reschedule my booking?',
@@ -57,7 +90,7 @@ export default function Home({ vehicles, setActiveTab, onBookVehicle }) {
             </h1>
             <p className="hero-description">
               Choose from our wide range of sanitized cars, touring bikes, family vans, and electric vehicles.
-              Real-time database sync with zero hidden charges.
+              Real-time database sync with zero hidden charges and free doorstep delivery.
             </p>
 
             <div className="hero-buttons">
@@ -147,7 +180,7 @@ export default function Home({ vehicles, setActiveTab, onBookVehicle }) {
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Ready for Pickup</span>
               </div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontWeight: 'bold', color: 'var(--primary)', fontSize: '1.2rem' }}>₹800/day</div>
+                <div style={{ fontWeight: 'bold', color: 'var(--primary)', fontSize: '1.2rem' }}>₹850/day</div>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Starting Price</span>
               </div>
             </div>
@@ -214,7 +247,7 @@ export default function Home({ vehicles, setActiveTab, onBookVehicle }) {
             <div className="service-card">
               <div className="service-icon">🛡️</div>
               <h3>Insurance Coverage Included</h3>
-              <p>Transparent pricing with standard comprehensive damage protection included.</p>
+              <p>Transparent pricing with standard comprehensive damage protection included in your daily rate.</p>
             </div>
 
             <div className="service-card">
@@ -226,8 +259,52 @@ export default function Home({ vehicles, setActiveTab, onBookVehicle }) {
         </div>
       </section>
 
-      {/* 4. FAQ ACCORDION SECTION */}
+      {/* 4. VERIFIED CUSTOMER REVIEWS */}
       <section className="section">
+        <div className="container">
+          <div className="section-header">
+            <span className="section-tag">Loved by Travelers</span>
+            <h2 className="section-title">What Our Customers Say</h2>
+            <p className="section-subtitle">
+              Real reviews from verified riders and travelers who trusted us for their road trips.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+            {reviews.map((rev, idx) => (
+              <div key={idx} className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '2rem' }}>{rev.avatar}</span>
+                      <div>
+                        <h4 style={{ fontSize: '1.05rem', margin: 0 }}>{rev.name}</h4>
+                        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{rev.city} • Verified Rider</span>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{rev.date}</span>
+                  </div>
+
+                  <div style={{ color: '#f59e0b', fontSize: '1.1rem', marginBottom: '10px' }}>
+                    {'★'.repeat(rev.rating)}
+                  </div>
+
+                  <p style={{ color: 'var(--text-main)', fontSize: '0.92rem', lineHeight: '1.6' }}>
+                    "{rev.comment}"
+                  </p>
+                </div>
+
+                <div style={{ borderTop: '1px solid var(--border)', paddingTop: '10px', marginTop: '16px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Rented: <strong>{rev.vehicle}</strong>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 5. FAQ ACCORDION SECTION */}
+      <section className="section" style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)' }}>
         <div className="container" style={{ maxWidth: '800px' }}>
           <div className="section-header">
             <span className="section-tag">Got Questions?</span>
@@ -270,12 +347,12 @@ export default function Home({ vehicles, setActiveTab, onBookVehicle }) {
         </div>
       </section>
 
-      {/* 5. CONTACT US SECTION */}
-      <section id="contact-section" className="section" style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)' }}>
+      {/* 6. CONTACT US SECTION */}
+      <section id="contact-section" className="section" style={{ borderTop: '1px solid var(--border)' }}>
         <div className="container">
           <div className="section-header">
             <span className="section-tag">Get In Touch</span>
-            <h2 className="section-title">Contact Us</h2>
+            <h2 className="section-title">Contact Our Hub</h2>
             <p className="section-subtitle">
               Have questions about vehicle booking, bulk rentals, or custom durations? Reach out to us.
             </p>
